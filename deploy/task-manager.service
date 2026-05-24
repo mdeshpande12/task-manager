@@ -1,0 +1,19 @@
+[Unit]
+Description=Task Manager Dropwizard Service
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/opt/task-manager
+ExecStart=/usr/bin/java -jar /opt/task-manager/task-manager.jar server /opt/task-manager/config.yml
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+EnvironmentFile=/opt/task-manager/.env
+
+[Install]
+WantedBy=multi-user.target

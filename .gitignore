@@ -1,0 +1,28 @@
+# Build output
+target/
+dependency-reduced-pom.xml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.metals/
+.bloop/
+.bsp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Environment / secrets
+*.env
+config-local.yml
+
+# Notes
+scribs.md

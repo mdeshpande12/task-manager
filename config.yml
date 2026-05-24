@@ -1,0 +1,36 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+logging:
+  level: INFO
+  loggers:
+    com.twilio.task.manager: DEBUG
+
+database:
+  driverClass: org.postgresql.Driver
+  url: ${DB_URL:-jdbc:postgresql://ep-old-bread-aqf54pir.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require}
+  user: ${DB_USER:-neondb_owner}
+  password: ${DB_PASSWORD:-npg_B7TkEtjoS2pY}
+  maxWaitForConnection: 1s
+  validationQuery: "SELECT 1"
+  validationQueryTimeout: 3s
+  initialSize: 2
+  minSize: 2
+  maxSize: 8
+  checkConnectionWhileIdle: true
+  evictionInterval: 10s
+  minIdleTime: 1 minute
+
+datadog:
+  apiKey: ${DD_API_KEY:-}
+  host: localhost
+  port: 8125
+  prefix: task-manager
+  tags:
+    - env:dev
+    - service:task-manager
