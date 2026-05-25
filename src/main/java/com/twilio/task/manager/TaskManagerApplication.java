@@ -63,8 +63,8 @@ public class TaskManagerApplication extends Application<TaskManagerConfiguration
         DatadogConfiguration ddConfig = configuration.getDatadog();
 
         StatsDReporter reporter = StatsDReporter.forRegistry(environment.metrics())
-                .withHost(ddConfig.getHost())
-                .withPort(ddConfig.getPort())
+                .withApiKey(ddConfig.getApiKey())
+                .withSite(ddConfig.getSite())
                 .withPrefix(ddConfig.getPrefix())
                 .withTags(ddConfig.getTags())
                 .build();

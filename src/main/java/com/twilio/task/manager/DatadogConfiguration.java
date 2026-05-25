@@ -11,10 +11,7 @@ public class DatadogConfiguration {
     private String apiKey = "";
 
     @JsonProperty
-    private String host = "localhost";
-
-    @JsonProperty
-    private int port = 8125;
+    private String site = "datadoghq.com";
 
     @JsonProperty
     private String prefix = "task-manager";
@@ -26,12 +23,8 @@ public class DatadogConfiguration {
         return apiKey;
     }
 
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
+    public String getSite() {
+        return site;
     }
 
     public String getPrefix() {

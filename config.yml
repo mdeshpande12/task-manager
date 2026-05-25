@@ -28,8 +28,7 @@ database:
 
 datadog:
   apiKey: ${DD_API_KEY:-}
-  host: localhost
-  port: 8125
+  site: datadoghq.com
   prefix: task-manager
   tags:
     - env:dev
