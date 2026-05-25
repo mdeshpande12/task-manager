@@ -7,8 +7,6 @@ import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.jdbi3.JdbiFactory;
 import io.dropwizard.migrations.MigrationsBundle;
 import org.jdbi.v3.core.Jdbi;
-import org.coursera.metrics.datadog.DatadogReporter;
-import org.coursera.metrics.datadog.transport.UdpTransport;
 
 import com.twilio.task.manager.db.TaskDAO;
 import com.twilio.task.manager.db.UserDAO;
@@ -64,13 +62,9 @@ public class TaskManagerApplication extends Application<TaskManagerConfiguration
     private void configureDatadog(TaskManagerConfiguration configuration, Environment environment) {
         DatadogConfiguration ddConfig = configuration.getDatadog();
 
-        UdpTransport transport = new UdpTransport.Builder()
-                .withStatsdHost(ddConfig.getHost())
+        StatsDReporter reporter = StatsDReporter.forRegistry(environment.metrics())
+                .withHost(ddConfig.getHost())
                 .withPort(ddConfig.getPort())
-                .build();
-
-        DatadogReporter reporter = DatadogReporter.forRegistry(environment.metrics())
-                .withTransport(transport)
                 .withPrefix(ddConfig.getPrefix())
                 .withTags(ddConfig.getTags())
                 .build();
