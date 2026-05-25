@@ -3,6 +3,8 @@ package com.twilio.task.manager;
 import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
+import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.jdbi3.JdbiFactory;
 import io.dropwizard.migrations.MigrationsBundle;
@@ -30,6 +32,14 @@ public class TaskManagerApplication extends Application<TaskManagerConfiguration
 
     @Override
     public void initialize(final Bootstrap<TaskManagerConfiguration> bootstrap) {
+        // Enable ${ENV_VAR:-default} substitution in config.yml
+        bootstrap.setConfigurationSourceProvider(
+            new SubstitutingSourceProvider(
+                bootstrap.getConfigurationSourceProvider(),
+                new EnvironmentVariableSubstitutor(false)
+            )
+        );
+
         bootstrap.addBundle(new MigrationsBundle<TaskManagerConfiguration>() {
             @Override
             public DataSourceFactory getDataSourceFactory(TaskManagerConfiguration configuration) {
