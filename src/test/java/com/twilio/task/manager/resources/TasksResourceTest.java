@@ -10,6 +10,7 @@ import java.util.Optional;
 import com.twilio.task.manager.api.model.CreateTaskRequest;
 import com.twilio.task.manager.api.model.Task;
 import com.twilio.task.manager.db.TaskDAO;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 
 import jakarta.ws.rs.NotFoundException;
 
@@ -23,12 +24,15 @@ class TasksResourceTest {
     @Mock
     private TaskDAO taskDAO;
 
+    @Mock
+    private KafkaEventPublisher kafkaPublisher;
+
     private TasksResource resource;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        resource = new TasksResource(taskDAO);
+        resource = new TasksResource(taskDAO, kafkaPublisher, "tasks");
     }
 
     @Test

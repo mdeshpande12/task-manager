@@ -10,6 +10,7 @@ import java.util.Optional;
 import com.twilio.task.manager.api.model.CreateProjectRequest;
 import com.twilio.task.manager.api.model.Project;
 import com.twilio.task.manager.db.ProjectDAO;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 
 import jakarta.ws.rs.NotFoundException;
 
@@ -23,12 +24,15 @@ class ProjectsResourceTest {
     @Mock
     private ProjectDAO projectDAO;
 
+    @Mock
+    private KafkaEventPublisher kafkaPublisher;
+
     private ProjectsResource resource;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        resource = new ProjectsResource(projectDAO);
+        resource = new ProjectsResource(projectDAO, kafkaPublisher, "projects");
     }
 
     @Test
