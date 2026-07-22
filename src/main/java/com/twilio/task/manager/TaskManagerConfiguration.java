@@ -17,6 +17,11 @@ public class TaskManagerConfiguration extends Configuration {
     @JsonProperty("datadog")
     private DatadogConfiguration datadog = new DatadogConfiguration();
 
+    @Valid
+    @NotNull
+    @JsonProperty("kafka")
+    private KafkaConfiguration kafka = new KafkaConfiguration();
+
     public DataSourceFactory getDatabase() {
         return database;
     }
@@ -31,5 +36,13 @@ public class TaskManagerConfiguration extends Configuration {
 
     public void setDatadog(DatadogConfiguration datadog) {
         this.datadog = datadog;
+    }
+
+    public KafkaConfiguration getKafka() {
+        return kafka;
+    }
+
+    public void setKafka(KafkaConfiguration kafka) {
+        this.kafka = kafka;
     }
 }

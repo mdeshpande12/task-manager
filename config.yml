@@ -33,3 +33,22 @@ datadog:
   tags:
     - env:dev
     - service:task-manager
+
+kafka:
+  # Comma-separated list of broker host:port pairs.
+  # Override with KAFKA_BOOTSTRAP_SERVERS for a remote cluster.
+  bootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+  tasksTopic: tasks
+  usersTopic: users
+  projectsTopic: projects
+  consumerGroupId: task-manager-group
+  consumerTopics:
+    - tasks
+    - users
+    - projects
+  # Set to SASL_SSL for remote clusters (e.g. Confluent Cloud, MSK).
+  securityProtocol: ${KAFKA_SECURITY_PROTOCOL:-PLAINTEXT}
+  # Required when securityProtocol is SASL_SSL (e.g. PLAIN, SCRAM-SHA-256).
+  saslMechanism: ${KAFKA_SASL_MECHANISM:-}
+  # Full JAAS config string — set via env var, never hard-code credentials.
+  saslJaasConfig: ${KAFKA_SASL_JAAS_CONFIG:-}

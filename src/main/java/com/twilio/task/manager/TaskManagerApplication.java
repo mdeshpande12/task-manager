@@ -13,10 +13,16 @@ import org.jdbi.v3.core.Jdbi;
 import com.twilio.task.manager.db.TaskDAO;
 import com.twilio.task.manager.db.UserDAO;
 import com.twilio.task.manager.db.ProjectDAO;
+import com.twilio.task.manager.kafka.KafkaConsumerManager;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 import com.twilio.task.manager.resources.TasksResource;
 import com.twilio.task.manager.resources.UsersResource;
 import com.twilio.task.manager.resources.ProjectsResource;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class TaskManagerApplication extends Application<TaskManagerConfiguration> {
@@ -60,13 +66,54 @@ public class TaskManagerApplication extends Application<TaskManagerConfiguration
         final UserDAO userDAO = jdbi.onDemand(UserDAO.class);
         final ProjectDAO projectDAO = jdbi.onDemand(ProjectDAO.class);
 
-        // Register REST resources
-        environment.jersey().register(new TasksResource(taskDAO));
-        environment.jersey().register(new UsersResource(userDAO));
-        environment.jersey().register(new ProjectsResource(projectDAO));
+        // Build and register Kafka producer + consumer
+        final KafkaConfiguration kafkaConfig = configuration.getKafka();
+        final KafkaEventPublisher kafkaPublisher = new KafkaEventPublisher(buildProducerProps(kafkaConfig));
+        final KafkaConsumerManager kafkaConsumer = new KafkaConsumerManager(
+                buildConsumerProps(kafkaConfig), kafkaConfig.getConsumerTopics());
+
+        environment.lifecycle().manage(kafkaPublisher);
+        environment.lifecycle().manage(kafkaConsumer);
+
+        // Register REST resources (producer injected for event publishing)
+        environment.jersey().register(new TasksResource(taskDAO, kafkaPublisher, kafkaConfig.getTasksTopic()));
+        environment.jersey().register(new UsersResource(userDAO, kafkaPublisher, kafkaConfig.getUsersTopic()));
+        environment.jersey().register(new ProjectsResource(projectDAO, kafkaPublisher, kafkaConfig.getProjectsTopic()));
 
         // Configure Datadog metrics reporter via DogStatsD
         configureDatadog(configuration, environment);
+    }
+
+    private Properties buildProducerProps(KafkaConfiguration cfg) {
+        Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, cfg.getBootstrapServers());
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.RETRIES_CONFIG, 3);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        addSecurityProps(props, cfg);
+        return props;
+    }
+
+    private Properties buildConsumerProps(KafkaConfiguration cfg) {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, cfg.getBootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, cfg.getConsumerGroupId());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        addSecurityProps(props, cfg);
+        return props;
+    }
+
+    private void addSecurityProps(Properties props, KafkaConfiguration cfg) {
+        if (cfg.getSecurityProtocol() != null && !cfg.getSecurityProtocol().isBlank()) {
+            props.put("security.protocol", cfg.getSecurityProtocol());
+        }
+        if (cfg.getSaslMechanism() != null && !cfg.getSaslMechanism().isBlank()) {
+            props.put("sasl.mechanism", cfg.getSaslMechanism());
+        }
+        if (cfg.getSaslJaasConfig() != null && !cfg.getSaslJaasConfig().isBlank()) {
+            props.put("sasl.jaas.config", cfg.getSaslJaasConfig());
+        }
     }
 
     private void configureDatadog(TaskManagerConfiguration configuration, Environment environment) {

@@ -7,6 +7,7 @@ import com.twilio.task.manager.api.ProjectsApi;
 import com.twilio.task.manager.api.model.CreateProjectRequest;
 import com.twilio.task.manager.api.model.Project;
 import com.twilio.task.manager.db.ProjectDAO;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,9 +15,13 @@ import jakarta.ws.rs.NotFoundException;
 
 public class ProjectsResource implements ProjectsApi {
     private final ProjectDAO projectDAO;
+    private final KafkaEventPublisher kafkaPublisher;
+    private final String topic;
 
-    public ProjectsResource(ProjectDAO projectDAO) {
+    public ProjectsResource(ProjectDAO projectDAO, KafkaEventPublisher kafkaPublisher, String topic) {
         this.projectDAO = projectDAO;
+        this.kafkaPublisher = kafkaPublisher;
+        this.topic = topic;
     }
 
     @Override
@@ -28,7 +33,9 @@ public class ProjectsResource implements ProjectsApi {
         project.setOwnerId(request.getOwnerId());
 
         long id = projectDAO.create(project);
-        return projectDAO.findById(id).orElse(null);
+        Project created = projectDAO.findById(id).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(id), created);
+        return created;
     }
 
     @Override
@@ -36,6 +43,7 @@ public class ProjectsResource implements ProjectsApi {
     public void deleteProject(Long projectId) {
         projectDAO.findById(projectId).orElseThrow(NotFoundException::new);
         projectDAO.delete(projectId);
+        kafkaPublisher.publish(topic, String.valueOf(projectId), java.util.Map.of("id", projectId, "event", "deleted"));
     }
 
     @Override
@@ -62,6 +70,8 @@ public class ProjectsResource implements ProjectsApi {
         project.setOwnerId(request.getOwnerId());
 
         projectDAO.update(project);
-        return projectDAO.findById(projectId).orElse(null);
+        Project updated = projectDAO.findById(projectId).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(projectId), updated);
+        return updated;
     }
 }

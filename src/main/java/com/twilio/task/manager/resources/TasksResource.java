@@ -7,6 +7,7 @@ import com.twilio.task.manager.api.TasksApi;
 import com.twilio.task.manager.api.model.CreateTaskRequest;
 import com.twilio.task.manager.api.model.Task;
 import com.twilio.task.manager.db.TaskDAO;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,9 +15,13 @@ import jakarta.ws.rs.NotFoundException;
 
 public class TasksResource implements TasksApi {
     private final TaskDAO taskDAO;
+    private final KafkaEventPublisher kafkaPublisher;
+    private final String topic;
 
-    public TasksResource(TaskDAO taskDAO) {
+    public TasksResource(TaskDAO taskDAO, KafkaEventPublisher kafkaPublisher, String topic) {
         this.taskDAO = taskDAO;
+        this.kafkaPublisher = kafkaPublisher;
+        this.topic = topic;
     }
 
     @Override
@@ -37,7 +42,9 @@ public class TasksResource implements TasksApi {
         task.setDueDate(request.getDueDate());
 
         long id = taskDAO.create(task);
-        return taskDAO.findById(id).orElse(null);
+        Task created = taskDAO.findById(id).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(id), created);
+        return created;
     }
 
     @Override
@@ -45,6 +52,7 @@ public class TasksResource implements TasksApi {
     public void deleteTask(Long taskId) {
         taskDAO.findById(taskId).orElseThrow(NotFoundException::new);
         taskDAO.delete(taskId);
+        kafkaPublisher.publish(topic, String.valueOf(taskId), java.util.Map.of("id", taskId, "event", "deleted"));
     }
 
     @Override
@@ -80,6 +88,8 @@ public class TasksResource implements TasksApi {
         task.setDueDate(request.getDueDate());
 
         taskDAO.update(task);
-        return taskDAO.findById(taskId).orElse(null);
+        Task updated = taskDAO.findById(taskId).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(taskId), updated);
+        return updated;
     }
 }

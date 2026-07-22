@@ -7,6 +7,7 @@ import com.twilio.task.manager.api.UsersApi;
 import com.twilio.task.manager.api.model.CreateUserRequest;
 import com.twilio.task.manager.api.model.User;
 import com.twilio.task.manager.db.UserDAO;
+import com.twilio.task.manager.kafka.KafkaEventPublisher;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,9 +15,13 @@ import jakarta.ws.rs.NotFoundException;
 
 public class UsersResource implements UsersApi {
     private final UserDAO userDAO;
+    private final KafkaEventPublisher kafkaPublisher;
+    private final String topic;
 
-    public UsersResource(UserDAO userDAO) {
+    public UsersResource(UserDAO userDAO, KafkaEventPublisher kafkaPublisher, String topic) {
         this.userDAO = userDAO;
+        this.kafkaPublisher = kafkaPublisher;
+        this.topic = topic;
     }
 
     @Override
@@ -28,7 +33,9 @@ public class UsersResource implements UsersApi {
         user.setFullName(request.getFullName());
 
         long id = userDAO.create(user);
-        return userDAO.findById(id).orElse(null);
+        User created = userDAO.findById(id).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(id), created);
+        return created;
     }
 
     @Override
@@ -36,6 +43,7 @@ public class UsersResource implements UsersApi {
     public void deleteUser(Long userId) {
         userDAO.findById(userId).orElseThrow(NotFoundException::new);
         userDAO.delete(userId);
+        kafkaPublisher.publish(topic, String.valueOf(userId), java.util.Map.of("id", userId, "event", "deleted"));
     }
 
     @Override
@@ -62,6 +70,8 @@ public class UsersResource implements UsersApi {
         user.setFullName(request.getFullName());
 
         userDAO.update(user);
-        return userDAO.findById(userId).orElse(null);
+        User updated = userDAO.findById(userId).orElse(null);
+        kafkaPublisher.publish(topic, String.valueOf(userId), updated);
+        return updated;
     }
 }
